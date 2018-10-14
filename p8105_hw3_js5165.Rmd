@@ -1,0 +1,13 @@
+---
+title: "p8105_hw3_js5165"
+author: "Jingqi Song"
+date: "October 13, 2018"
+output: github_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+```
+
+## Problem 1
