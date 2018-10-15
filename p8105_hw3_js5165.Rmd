@@ -80,10 +80,8 @@ ggplot(p1_average, aes(x = year, y = avg_proportion, color = state)) +
     x = "Year",
     y = "Average proportion"
   ) + 
-  theme(legend.position = "right", axis.text.x = element_text(angle = 30))
+  theme(legend.position = "right", axis.text.x = element_text(angle = 40))
   
-  
-
 ```
 
 In 2002, Connecticut, Florida and North Carolina were observed at 7 locations.
@@ -95,15 +93,51 @@ In 2002, Connecticut, Florida and North Carolina were observed at 7 locations.
 p2_instacart = instacart
 
 #which aisles are the most items ordered from
-p2_aisle = p2_instacart %>% 
+p2_instacart %>% 
   group_by(aisle) %>% 
-  summarize(count = n_distinct(product_id)) %>% 
+  summarize(count = n()) %>% 
   arrange(-count)%>%
-  head(2)
+  head(5)
+
+#plot that shows the number of items ordered in each aisle
+p2_instacart %>% 
+  group_by(aisle) %>% 
+  summarize(count = n()) %>% 
+  mutate(aisle = forcats::fct_reorder(aisle, count),
+    aisle_grp = as.numeric(cut_number(count, 3))) %>% 
+  ggplot(aes(x = aisle, y = count)) +
+    geom_point() +
+    facet_wrap(~ aisle_grp, nrow = 3, scales = "free") +
+    theme(axis.text.x = element_text(size = 7, hjust = 1, angle = 40)) +
+    labs(
+      title = "Number of Items Ordered in Each Aisle",
+      x = "Aisle Name",
+      y = "Number of Items Ordered"
+      )
+
+# the most popular item in “baking ingredients”, “dog food care”, and “packaged vegetables fruits”
+p2_instacart %>%  
+  filter(aisle == 'baking ingredients' | aisle == 'dog food care' | aisle == 'packaged vegetables fruits') %>% 
+  group_by(aisle, product_name) %>% 
+  summarize(count = n()) %>% 
+  group_by(aisle) %>% 
+  filter(min_rank(desc(count))< 2) 
+
+#table of the mean hour of the day at which Pink Lady Apples and Coffee Ice Cream are ordered
+p2_instacart %>%  
+  filter(product_name == 'Pink Lady Apples' | product_name == 'Coffee Ice Cream') %>% 
+  group_by(product_name, order_dow) %>% 
+  summarize(mean_hour = mean(order_hour_of_day)) %>% 
+  spread(key = 'product_name', value = 'mean_hour') %>% 
+  mutate(order_day = 'Monday',
+         order_dow = weekdays(order_day, abbreviate) + order_dow) %>% 
+  knitr::kable()
+
 ```
 
-There are in all 134 aisles; candy chocolate is the most items ordered from
+There are in all 134 aisles; fresh vegetables, fresh fruits, and packaged vegetable fruits are the most items ordered from.
 
+The most popular item in baking ingredients, dog food care and packaged vegetables fruits are Light Brown Suger, Snack Sticks Chicken & Rice Recipe Dog Treats, and Organic Baby Spinach respectively.
 
 
 
