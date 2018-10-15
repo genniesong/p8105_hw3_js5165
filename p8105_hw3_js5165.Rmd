@@ -13,12 +13,16 @@ knitr::opts_chunk$set(
   out.width = "90%"
 )
 library(tidyverse)
+library(rnoaa)
+library(p8105.datasets)
+library(ggridges)
+install.packages('hexbin')
+library(hexbin)
 ```
 
 ## Problem 1
 
 ```{r Problem1}
-library(p8105.datasets)
 p1_brfss=brfss_smart2010 %>% 
   janitor::clean_names() %>%
   separate(locationdesc, into = c("state", "county"), sep = " - ") %>%
@@ -140,10 +144,69 @@ There are in all 134 aisles; fresh vegetables, fresh fruits, and packaged vegeta
 The most popular item in baking ingredients, dog food care and packaged vegetables fruits are Light Brown Suger, Snack Sticks Chicken & Rice Recipe Dog Treats, and Organic Baby Spinach respectively.
 
 
+## Problem 3
+```{r Problem3}
+p3_noaa = ny_noaa %>% 
+  janitor::clean_names() %>%
+  separate(date, into = c("year", "month", 'day'), sep = "-") %>%
+  mutate(
+    tmax = as.numeric(tmax) / 10, 
+    tmin = as.numeric(tmin) / 10)
+
+# Get a list of all NY station IDs
+stations = ghcnd_stations()
+nystationids =  stations %>% 
+  filter(state == "NY") %>% 
+  distinct(id, name)
+
+#For snowfall, what are the most commonly observed values
+p3_noaa %>% 
+  count(snow) %>% 
+  arrange(desc(n)) %>% 
+  head(5)
+
+#two-panel plot showing the average max temperature in January and in July
+p3_avg = p3_noaa %>% 
+  filter(month == '01' | month == '07') %>% 
+  group_by(id, year, month) %>% 
+  summarize(avg_tmax = round(mean(tmax, na.rm = TRUE), 2), avg_tmin = round(mean(tmin, na.rm = TRUE), 2)) %>% 
+  na.omit() %>% 
+  gather(key = "avg_type", value = "avg_temp", avg_tmax)
+
+ggplot(p3_avg, aes(x = year, y = avg_temp)) + 
+  geom_boxplot() + 
+  facet_grid(~ month) +
+  labs(
+    title = "Average Max Temperature in January and July",
+    x = "Year",
+    y = "Average Max Temperature (˚C)"
+  ) + 
+  scale_y_continuous(breaks = c(-10, 0, 10, 20, 30)) +
+  theme(legend.position = "bottom", axis.text.x = element_text(size = 6, angle = 40))
+
+#(i) tmax vs tmin for the full dataset
+p3_noaa %>% 
+  ggplot(aes(x = tmax, y = tmin)) + 
+  geom_hex() +
+  labs(
+    title = "Maximum Temperature vs Minimum Temperature",
+    x = "Maximum Temperature",
+    y = "Minimum Temperature"
+  )
 
 
+#(ii) plot showing the distribution of snowfall values greater than 0 and less than 100 separately by year
+p3_noaa %>%
+  filter(snow > 0 & snow < 100) %>% 
+  ggplot(aes(x = snow, y = year)) + 
+  geom_density_ridges(scale = .85) +
+  labs(
+    title = "Snowfall 0-100 mm Each Year",
+    x = "Snow Fall (mm)", 
+    y = "Year")
+```
 
-
+For snowfall, 0 and 25 are the most commonly observed values.
 
 
 
