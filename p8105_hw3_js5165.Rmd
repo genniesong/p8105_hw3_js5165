@@ -16,7 +16,6 @@ library(tidyverse)
 library(rnoaa)
 library(p8105.datasets)
 library(ggridges)
-install.packages('hexbin')
 library(hexbin)
 ```
 
@@ -26,11 +25,12 @@ library(hexbin)
 p1_brfss=brfss_smart2010 %>% 
   janitor::clean_names() %>%
   separate(locationdesc, into = c("state", "county"), sep = " - ") %>%
-  filter(topic=='Overall Health')%>%
-  mutate(response = forcats::fct_relevel(response, c("excellent", "very_good", "good", "fair", "poor"))) %>% 
+  filter(topic=='Overall Health') %>%
+  mutate(response = forcats::fct_relevel(response, c("Excellent", "Very good", "Good", "Fair", "Poor"))) %>% 
   select(-locationabbr, year, state, county, response, everything())
+```
 
-
+```{r Problem1.1}
 #In 2002, which states were observed at 7 locations
 p1_brfss%>%
   filter(year == 2002) %>% 
@@ -38,6 +38,12 @@ p1_brfss%>%
   summarize(count = n_distinct(county)) %>% 
   filter(count == 7)
 
+```
+
+In 2002, Connecticut, Florida and North Carolina were observed at 7 locations.
+
+
+```{r Problem1.2}
 #plot that shows the number of locations in each state from 2002 to 2010
 p1_brfss%>%
   group_by(state, year) %>% 
@@ -51,8 +57,12 @@ p1_brfss%>%
     y = "Number"
     ) +
   theme(legend.position = "right")
-  
+```
 
+Locations in most of the stateS are kept between 0-20 steadily across 2002-2010; two peak values of FL that are more than 40 are showed in 2007 and 2010.
+  
+  
+```{r Problem1.3}
 #table for mean and standard deviation
 p1_brfss_3 = p1_brfss %>%
   spread(key = response, value = data_value) %>% 
@@ -63,8 +73,12 @@ p1_brfss_3 = p1_brfss %>%
   summarize(avg_excellent = mean(excellent, na.rm = TRUE),sd_excellent = sd(excellent, na.rm = TRUE)) %>% 
   knitr::kable(digits = 2)
 p1_brfss_3
+```
+
+The average excellent proportion of all counties in NY are between 17.20-27.50, from which New York County is the hightes while Erie County is the lowest.
 
 
+```{r Problem1.4}
 #five-panel plot 
 p1_average = p1_brfss %>%
   spread(key = response, value = data_value) %>% 
@@ -80,29 +94,40 @@ ggplot(p1_average, aes(x = year, y = avg_proportion, color = state)) +
   geom_line(alpha = .5) +
   facet_grid(~ avg_type) +
   labs(
-    title = "State-Level Average Proportion",
+    title = "State-Level Average Response Proportion",
     x = "Year",
     y = "Average proportion"
   ) + 
   theme(legend.position = "right", axis.text.x = element_text(angle = 40))
-  
 ```
 
-In 2002, Connecticut, Florida and North Carolina were observed at 7 locations.
+The ranking of average response proportion (from high to low) is "Very Good", "Good", "Excellent", "Fair", and "Poor"; the deviation of "Poor" is the lowest among the five responses.
+
 
 
 ## Problem 2
 
 ```{r Problem2}
 p2_instacart = instacart
+```
 
+The dataset has 1,384,617 observations and 15 variables. The variables include information (id and name) of departments, aisles and products, plus order information (eg. order id, number of order, order day).
+For example, 6 Bag of Organic Bananas (id: 13176) is ordered at 12am on the fifth day of the week (with no reorder) by the customer (id: 112108), and it has been 9 days since the last order. It is ordered from the Fresh Fruits aisle (id: 24) of department of Produce (id: 4). The order (id: 1) also includes some other products, such as Bulgarian Yogurt and Cucumber Kirby.
+
+
+```{r Problem2.1}
 #which aisles are the most items ordered from
 p2_instacart %>% 
   group_by(aisle) %>% 
   summarize(count = n()) %>% 
   arrange(-count)%>%
   head(5)
+```
 
+There are in all 134 aisles; fresh vegetables and fresh fruits are the most items ordered from.
+
+
+```{r Problem2.2}
 #plot that shows the number of items ordered in each aisle
 p2_instacart %>% 
   group_by(aisle) %>% 
@@ -118,7 +143,12 @@ p2_instacart %>%
       x = "Aisle Name",
       y = "Number of Items Ordered"
       )
+```
 
+From the plot we can see that the number of items ordered in each aisle variates from less than 200 to more than 130,000. The highest are from fresh vegetables and fresh fruits; and there is a gap between the second highest (fresh fruits) and the third highest aisle(packaged vegetables fruits).
+
+
+```{r Problem2.3}
 # the most popular item in “baking ingredients”, “dog food care”, and “packaged vegetables fruits”
 p2_instacart %>%  
   filter(aisle == 'baking ingredients' | aisle == 'dog food care' | aisle == 'packaged vegetables fruits') %>% 
@@ -126,22 +156,23 @@ p2_instacart %>%
   summarize(count = n()) %>% 
   group_by(aisle) %>% 
   filter(min_rank(desc(count))< 2) 
+```
 
+The most popular item in baking ingredients, dog food care and packaged vegetables fruits are Light Brown Suger, Snack Sticks Chicken & Rice Recipe Dog Treats, and Organic Baby Spinach respectively.
+
+
+```{r Problem2.4}
 #table of the mean hour of the day at which Pink Lady Apples and Coffee Ice Cream are ordered
 p2_instacart %>%  
   filter(product_name == 'Pink Lady Apples' | product_name == 'Coffee Ice Cream') %>% 
   group_by(product_name, order_dow) %>% 
-  summarize(mean_hour = mean(order_hour_of_day)) %>% 
+  summarize(mean_hour = round(mean(order_hour_of_day), 2)) %>% 
   spread(key = 'product_name', value = 'mean_hour') %>% 
-  mutate(order_day = 'Monday',
-         order_dow = weekdays(order_day, abbreviate) + order_dow) %>% 
   knitr::kable()
-
 ```
 
-There are in all 134 aisles; fresh vegetables, fresh fruits, and packaged vegetable fruits are the most items ordered from.
+The value of the variable "order_dow" (0-6) represents the first to the seventh day of the week. The range of mean hour time of Coffee Ice Cream is 1pm-4pm, which is generally later than the time Pink Lady Apples being ordered (12pm-3pm).
 
-The most popular item in baking ingredients, dog food care and packaged vegetables fruits are Light Brown Suger, Snack Sticks Chicken & Rice Recipe Dog Treats, and Organic Baby Spinach respectively.
 
 
 ## Problem 3
@@ -151,20 +182,35 @@ p3_noaa = ny_noaa %>%
   separate(date, into = c("year", "month", 'day'), sep = "-") %>%
   mutate(
     tmax = as.numeric(tmax) / 10, 
-    tmin = as.numeric(tmin) / 10)
+    tmin = as.numeric(tmin) / 10,
+    prcp = prcp / 10)
 
-# Get a list of all NY station IDs
-stations = ghcnd_stations()
-nystationids =  stations %>% 
-  filter(state == "NY") %>% 
-  distinct(id, name)
+p3_missing = p3_noaa %>% 
+  group_by(id) %>% 
+  summarize(prcp_na = sum(is.na(prcp)),
+            snow_na = sum(is.na(snow)),
+            snwd_na = sum(is.na(snwd)),
+            tmax_na = sum(is.na(tmax)),
+            tmin_na = sum(is.na(tmin)))
+p3_missing
+```
 
+The dataset has 2,595,176 observations and 9 variables. The variables include NY weather station id, the date of observation, precipitation (mm), snowfall (mm), snow depth (mm), and the maximum and minimum temperatures (tenths of degrees C).
+Also from the table of missing value, missing value may become a problem that needs to be considered when we are doing analysis using snow and temperature data.
+
+
+```{r Problem3.1}
 #For snowfall, what are the most commonly observed values
 p3_noaa %>% 
   count(snow) %>% 
   arrange(desc(n)) %>% 
   head(5)
+```
 
+For snowfall, 0 and 25 are the most commonly observed values.
+
+
+```{r Problem3.2}
 #two-panel plot showing the average max temperature in January and in July
 p3_avg = p3_noaa %>% 
   filter(month == '01' | month == '07') %>% 
@@ -177,24 +223,33 @@ ggplot(p3_avg, aes(x = year, y = avg_temp)) +
   geom_boxplot() + 
   facet_grid(~ month) +
   labs(
-    title = "Average Max Temperature in January and July",
+    title = "Average Maximum Temperature in January and July",
     x = "Year",
-    y = "Average Max Temperature (˚C)"
+    y = "Average Maximum Temperature (C)"
   ) + 
   scale_y_continuous(breaks = c(-10, 0, 10, 20, 30)) +
   theme(legend.position = "bottom", axis.text.x = element_text(size = 6, angle = 40))
+```
 
+There is no huge fluctuation of average maximum temperature in January and July across 1981 to 2010. A minor uptrend in January can be observed. Outliers are shown in January in 1982, 1993, 2004 and 2005, and July in 1988, 2004 and 2007.
+
+
+```{r Problem3.3}
 #(i) tmax vs tmin for the full dataset
 p3_noaa %>% 
   ggplot(aes(x = tmax, y = tmin)) + 
   geom_hex() +
   labs(
     title = "Maximum Temperature vs Minimum Temperature",
-    x = "Maximum Temperature",
-    y = "Minimum Temperature"
+    x = "Maximum Temperature (C)",
+    y = "Minimum Temperature (C)"
   )
+```
+
+The lighter color of the plot represents greater number of observations. We can see from the plot that there might be a linear relationship between maximum and minimum temperature.
 
 
+```{r Problem3.4}
 #(ii) plot showing the distribution of snowfall values greater than 0 and less than 100 separately by year
 p3_noaa %>%
   filter(snow > 0 & snow < 100) %>% 
@@ -206,13 +261,7 @@ p3_noaa %>%
     y = "Year")
 ```
 
-For snowfall, 0 and 25 are the most commonly observed values.
-
-
-
-
-
-
+There is no huge fluctuation of snowfall across 1981 to 2010.
 
 
 
