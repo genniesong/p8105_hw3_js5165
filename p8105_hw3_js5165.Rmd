@@ -7,6 +7,11 @@ output: github_document
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(
+  fig.width = 6,
+  fig.asp = .6,
+  out.width = "90%"
+)
 library(tidyverse)
 ```
 
@@ -18,10 +23,8 @@ p1_brfss=brfss_smart2010 %>%
   janitor::clean_names() %>%
   separate(locationdesc, into = c("state", "county"), sep = " - ") %>%
   filter(topic=='Overall Health')%>%
-  select(-class,-topic,-question,-sample_size,-locationabbr,-(confidence_limit_low:geo_location))%>%
-  mutate(response = forcats::fct_relevel(response, c("Excellent", "Very good", "Good", "Fair", "Poor"))) %>% 
-  spread(key = response, value = data_value)%>%
-  janitor::clean_names()
+  mutate(response = forcats::fct_relevel(response, c("excellent", "very_good", "good", "fair", "poor"))) %>% 
+  select(-locationabbr, year, state, county, response, everything())
 
 
 #In 2002, which states were observed at 7 locations
@@ -36,68 +39,83 @@ p1_brfss%>%
   group_by(state, year) %>% 
   summarize(location_num = n_distinct(county)) %>% 
   ggplot(aes(x = year, y = location_num, color = state)) + 
-  geom_smooth(se = FALSE) +
+  geom_point() + 
+  geom_line(alpha = .5) +
     labs(
-    title = "Number of locations",
-    x = "Year",
+    title = "Number of locations" ,
+    x = "Year" ,
     y = "Number"
-  )
+    ) +
+  theme(legend.position = "right")
+  
 
 #table for mean and standard deviation
+p1_brfss_3 = p1_brfss %>%
+  spread(key = response, value = data_value) %>% 
+  janitor::clean_names() %>%
+  filter( year == 2002 | year == 2006 | year == 2010) %>%   
+  filter(state == "NY") %>% 
+  group_by(state, county) %>% 
+  summarize(avg_excellent = mean(excellent, na.rm = TRUE),sd_excellent = sd(excellent, na.rm = TRUE)) %>% 
+  knitr::kable(digits = 2)
+p1_brfss_3
+
 
 #five-panel plot 
 p1_average = p1_brfss %>%
+  spread(key = response, value = data_value) %>% 
+  janitor::clean_names() %>%
+  select(year, state, county, excellent:poor) %>% 
   group_by(state, year) %>% 
-  summarize(avg_excellent = mean(excellent), avg_very_good = mean(very_good), avg_good = mean(good), avg_fair = mean(fair), avg_poor = mean(poor)) 
+  summarize(avg_excellent = mean(excellent, na.rm = TRUE), avg_very_good = mean(very_good, na.rm = TRUE), avg_good = mean(good, na.rm = TRUE), avg_fair = mean(fair, na.rm = TRUE), avg_poor = mean(poor, na.rm = TRUE)) %>% 
+  gather(key = "avg_type", value = "avg_proportion", avg_excellent:avg_poor) %>%
+  mutate(avg_type = forcats::fct_relevel(avg_type, c("avg_excellent", "avg_very_good", "avg_good", "avg_fair", "avg_poor")))
 
-p1_excellent = ggplot(p1_average, aes(x = year, y = avg_excellent, color = state)) +
-  geom_smooth(se = FALSE) +
-  theme(legend.position = "none") +
-    labs(
-    title = "Average Proportion of Excellent",
+ggplot(p1_average, aes(x = year, y = avg_proportion, color = state)) + 
+  geom_point() + 
+  geom_line(alpha = .5) +
+  facet_grid(~ avg_type) +
+  labs(
+    title = "State-Level Average Proportion",
     x = "Year",
-    y = "Average Proportion"
-  )
-
-p1_very_good = ggplot(p1_average, aes(x = year, y = avg_very_good, color = state)) +
-  geom_smooth(se = FALSE) +
-  theme(legend.position = "none") +
-    labs(
-      title = "Average Proportion of Very Good",
-    x = "Year",
-    y = "Average Proportion"
-  )
-
-p1_good = ggplot(p1_average, aes(x = year, y = avg_good, color = state)) +
-  geom_smooth(se = FALSE) +
-  theme(legend.position = "none") +
-    labs(
-      title = "Average Proportion of Good",
-    x = "Year",
-    y = "Average Proportion"
-  )
-
-p1_fair = ggplot(p1_average, aes(x = year, y = avg_fair, color = state)) +
-  geom_smooth(se = FALSE) +
-  theme(legend.position = "none") +
-    labs(
-      title = "Average Proportion of Fair",
-    x = "Year",
-    y = "Average Proportion"
-  )
-
-p1_poor = ggplot(p1_average, aes(x = year, y = avg_poor, color = state)) +
-  geom_smooth(se = FALSE) +
-  theme(legend.position = "none") +
-    labs(
-      title = "Average Proportion of Poor",
-    x = "Year",
-    y = "Average Proportion"
-  )
-
+    y = "Average proportion"
+  ) + 
+  theme(legend.position = "right", axis.text.x = element_text(angle = 30))
+  
+  
 
 ```
 
-
-
 In 2002, Connecticut, Florida and North Carolina were observed at 7 locations.
+
+
+## Problem 2
+
+```{r Problem2}
+p2_instacart = instacart
+
+#which aisles are the most items ordered from
+p2_aisle = p2_instacart %>% 
+  group_by(aisle) %>% 
+  summarize(count = n_distinct(product_id)) %>% 
+  arrange(-count)%>%
+  head(2)
+```
+
+There are in all 134 aisles; candy chocolate is the most items ordered from
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
